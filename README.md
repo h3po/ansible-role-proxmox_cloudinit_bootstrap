@@ -76,7 +76,7 @@ Here's an example including the [h3po.proxmox_debian_cloudimage](https://github.
           become: true
       
       # this is a variable defined by the proxmox inventory plugin if the vm exists
-      when: proxox_vmid is not defined
+      when: proxmox_vmid is not defined
 
     # the vm should now exist, but it may not be started if it wasn't just created
     - name: gather facts
