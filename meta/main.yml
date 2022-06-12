@@ -1,0 +1,17 @@
+---
+galaxy_info:
+  role_name: proxmox_cloudinit_bootstrap
+  author: h3po
+  description: This ansible role bootstraps a VM on proxmox from a cloudinit-enabled template, such as the ones created by h3po.proxmox_debian_cloudimage
+  license: GPL-3.0-only
+  min_ansible_version: "2.1"
+  platforms:
+    - name: Debian
+      versions:
+        - all
+
+  galaxy_tags:
+    - proxmox
+    - provisioning
+
+dependencies: []

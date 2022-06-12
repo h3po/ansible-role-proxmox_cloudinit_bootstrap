@@ -1,0 +1,123 @@
+---
+- name: get the next free vmid
+  ansible.builtin.command: pvesh get /cluster/nextid
+  changed_when: false
+  register: nextid
+
+- name: clone the template
+  ansible.builtin.command: qm clone {{ debian_template_vmid }} {{ nextid.stdout }} -full -storage {{ proxmox_vm_storage }} -name {{ inventory_hostname }} {{ '-pool %s' % proxmox_vm_pool if proxmox_vm_pool is defined}}
+  changed_when: true
+  register: qmclone
+
+- name: create temporary directory locally for the ssh key
+  ansible.builtin.tempfile:
+    state: directory
+  delegate_to: localhost
+  register: localtempdir
+  become: false
+  when: proxmox_bootstrap_sshkey == "random"
+
+- name: create temporary directory on the proxmox host for the ssh key
+  ansible.builtin.tempfile:
+    state: directory
+  register: remotetempdir
+
+- name: generate one-time ssh key for the vm
+  ansible.builtin.openssh_keypair:
+    path: "{{ localtempdir.path }}/{{ inventory_hostname_short }}_id_rsa"
+    type: rsa
+    size: 2048
+    state: present
+  delegate_to: localhost
+  become: false
+  when: proxmox_bootstrap_sshkey == "random"
+
+- name: copy the new public key to the proxmox host
+  ansible.builtin.copy:
+    src: "{{ localtempdir.path }}/{{ inventory_hostname_short }}_id_rsa.pub"
+    dest: "{{ remotetempdir.path }}/{{ inventory_hostname_short }}_id_rsa.pub"
+    mode: 0600
+  when: proxmox_bootstrap_sshkey == "random"
+
+- name: write the bootstrap public key to the proxmox host
+  ansible.builtin.copy:
+    content: "{{ proxmox_bootstrap_sshkey }}"
+    dest: "{{ remotetempdir.path }}/{{ inventory_hostname_short }}_id_rsa.pub"
+    mode: 0600
+  when: proxmox_bootstrap_sshkey != "random"
+
+- name: configure the vm
+  ansible.builtin.command: >-
+    qm set {{ nextid.stdout }}
+    {{ '-cores %s' % proxmox_cores_spec if proxmox_cores_spec is defined }}
+    {{ '-cpuunits %s' % proxmox_cpuunits_spec if proxmox_cpuunits_spec is defined }}
+    {{ '-memory %s' % proxmox_memory_spec if proxmox_memory_spec is defined }}
+    {{ '-balloon %s' % proxmox_balloon_spec if proxmox_balloon_spec is defined }}
+    {{ '-shares %s' % proxmox_memory_shares_spec if proxmox_memory_shares_spec is defined }}
+    {{ '-net0 virtio,bridge=%s' % proxmox_bridge_device_spec if proxmox_bridge_device_spec is defined }}{{ ',tag=%s' % proxmox_bridge_vlan_spec if proxmox_bridge_vlan_spec is defined }}
+    -ciuser {{ proxmox_bootstrap_user }}
+    -sshkey {{ remotetempdir.path }}/{{ inventory_hostname_short }}_id_rsa.pub
+  changed_when: true
+  register: qmset
+
+- name: delete remote temporary directory
+  ansible.builtin.file:
+    path: "{{ remotetempdir.path }}"
+    state: absent
+  when: remotetempdir is defined
+
+- name: resize the disk
+  ansible.builtin.command: >-
+    qm resize {{ nextid.stdout }} scsi0 {{ proxmox_disk_spec }}
+  changed_when: true
+  when: proxmox_disk_spec is defined
+
+- name: start the vm
+  ansible.builtin.command: qm start {{ nextid.stdout }}
+  changed_when: true
+  register: qmstart
+
+- name: wait for qemu-guest-agent to return an ip address
+  ansible.builtin.command: qm guest cmd {{ nextid.stdout }} network-get-interfaces
+  changed_when: false
+  register: qmguestcmd
+  failed_when: false
+  delay: 1
+  until: >-
+    (
+      (
+        (qmguestcmd.stdout or "[]") | from_json | selectattr('name', 'equalto', 'ens18') | first | default({})
+      ).get('ip-addresses', []) | selectattr('ip-address-type', 'equalto', 'ipv4') | first | default({})
+    ).get('ip-address', "") != ""
+
+- name: grow the root partition
+  ansible.builtin.command: qm guest exec {{ nextid.stdout }} growpart /dev/sda 1
+  register: qmguestexec
+  failed_when: (qmguestexec.stdout | from_json).exitcode != 0 and "NOCHANGE" not in (qmguestexec.stdout | from_json)['out-data']
+  changed_when: "'NOCHANGE' not in (qmguestexec.stdout | from_json)['out-data']"
+  when: proxmox_disk_spec is defined
+
+- name: grow the root filesystem
+  ansible.builtin.command: qm guest exec {{ nextid.stdout }} resize2fs /dev/sda1
+  register: qmguestexec
+  failed_when: (qmguestexec.stdout | from_json).exitcode != 0
+  changed_when: "'Nothing to do' not in ((qmguestexec.stdout | from_json).get('err-data', ''))"
+  when: proxmox_disk_spec is defined
+
+- name: override ansible_host with fresh ip address
+  ansible.builtin.set_fact:
+    ansible_host: >-
+      {{
+        (
+          (
+            qmguestcmd.stdout | from_json | selectattr('name', 'equalto', 'ens18') | first
+          ).get('ip-addresses') | selectattr('ip-address-type', 'equalto', 'ipv4') | first
+        ).get('ip-address')
+      }}
+
+- name: override ansible connection variables for bootstrap ssh key
+  ansible.builtin.set_fact:
+    ansible_user: "{{ proxmox_bootstrap_user }}"
+    ansible_ssh_extra_args: -o StrictHostKeyChecking=no -o UpdateHostKeys=yes -o AddKeysToAgent=no
+    ansible_ssh_private_key_file: "{{ localtempdir.path }}/{{ inventory_hostname_short }}_id_rsa"
+  when: proxmox_bootstrap_sshkey == "random"

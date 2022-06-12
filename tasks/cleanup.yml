@@ -1,0 +1,8 @@
+---
+- name: delete local temporary directory
+  ansible.builtin.file:
+    path: "{{ localtempdir.path }}"
+    state: absent
+  delegate_to: localhost
+  become: false
+  when: localtempdir is defined
