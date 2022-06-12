@@ -9,22 +9,28 @@ It can edit basic parameters of the resulting VM such as CPU cores, memory and d
 Role Variables
 --------------
 
+Required variables
 | variable | default value | description/alternatives
 | --- | --- | --- |
 | proxmox_vm_storage | local | the storage that the VM is cloned onto
 | proxmox_bootstrap_user | bootstrap | the name of the user that is added to the VM
 | proxmox_bootstrap_sshkey | random | the ssh key of the bootstrap user. if this is "random", a new key will be created for the first connection
-| proxmox_vm_pool | | optional: the pool that the VM is added to
-| proxmox_cores_spec | | optional: the number of cores
-| proxmox_cpuunits_spec | | optional: the cpu shares
-| proxmox_memory_spec | | optional: the memory size in MB
-| proxmox_balloon_spec | | optional: the minimum memory size in MB with ballooning
-| proxmox_memory_shares_spec | | optional: the memory shares for ballooning
-| proxmox_bridge_device_spec | | optional: the bridge for the net0 interface
-| proxmox_bridge_vlan_spec | | optional: the vlan tag for the net0 interface
-| proxmox_disk_spec | | optional: the disk size in proxmox notation, e.g. '10G'. The role will grow the root partition and filesystem to fill the enlarged disk
+| debian_template_vmid | | the id of the template to be cloned, usually set by the proxmox_debian_cloudimage role
 
-If the values marked as 'optional' are not provided, then no change is made to the VM and it will keep the inherited settings of the template.
+Optional variables
+| variable | default value | description/alternatives
+| --- | --- | --- |
+| proxmox_vm_pool | | the pool that the VM is added to
+| proxmox_cores_spec | | the number of cores
+| proxmox_cpuunits_spec | | the cpu shares
+| proxmox_memory_spec | | the memory size in MB
+| proxmox_balloon_spec | | the minimum memory size in MB with ballooning
+| proxmox_memory_shares_spec | | the memory shares for ballooning
+| proxmox_bridge_device_spec | | the bridge for the net0 interface
+| proxmox_bridge_vlan_spec | | the vlan tag for the net0 interface
+| proxmox_disk_spec | | the disk size in proxmox notation, e.g. '10G'. The role will grow the root partition and filesystem to fill the enlarged disk
+
+If the optional variables are not defined, then no change is made to the VM and it will keep the inherited settings of the template.
 
 Example Playbook
 ----------------
