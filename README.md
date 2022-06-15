@@ -15,7 +15,7 @@ Required variables
 | proxmox_vm_storage | local | the storage that the VM is cloned onto
 | proxmox_bootstrap_user | bootstrap | the name of the user that is added to the VM
 | proxmox_bootstrap_sshkey | random | the ssh key of the bootstrap user. if this is "random", a new key will be created for the first connection
-| debian_template_vmid | | the id of the template to be cloned, usually set by the proxmox_debian_cloudimage role
+| linux_template_vmid | | the id of the template to be cloned, usually set by the proxmox_linux_cloudimage role
 
 Optional variables
 | variable | default value | description/alternatives
@@ -35,19 +35,19 @@ If the optional variables are not defined, then no change is made to the VM and 
 Example Playbook
 ----------------
 
-Here's an example including the [h3po.proxmox_debian_cloudimage](https://github.com/h3po/ansible-role-proxmox-debian-cloudimage/) role to create the template and then clone it to 'new-debian-vm'. The detection of wether the VM already exists or not depends on the variable `proxmox_vmid` set by the proxmox inventory plugin from the [community.general](https://github.com/ansible-collections/community.general) collection.
+Here's an example including the [h3po.proxmox_linux_cloudimage](https://github.com/h3po/ansible-role-proxmox-linux-cloudimage/) role to create the template and then clone it to 'new-linux-vm'. The detection of wether the VM already exists or not depends on the variable `proxmox_vmid` set by the proxmox inventory plugin from the [community.general](https://github.com/ansible-collections/community.general) collection.
 
 ```yaml
 ---
-- name: create a debian vm
-  hosts: new-debian-vm
+- name: create a linux vm
+  hosts: new-linux-vm
   become: true
   gather_facts: false
   vars:
     proxmox_template_pool: template
-    debian_cloudimage_repo_subdir: bullseye
-    debian_cloudimage_keep: true
-    debian_cloudimage_qemuagent: true
+    linux_cloudimage_repo_subdir: bullseye
+    linux_cloudimage_keep: true
+    linux_cloudimage_qemuagent: true
     proxmox_bootstrap_user: test
     proxmox_bootstrap_sshkey: ssh-ed25519 AAAAxyzkkMN test
   tasks:
@@ -63,7 +63,7 @@ Here's an example including the [h3po.proxmox_debian_cloudimage](https://github.
           delegate_to: sc721.home.h3po.de
           become: true
 
-        - name: create the debian template
+        - name: create the linux template
           import_role:
             name: h3po.proxmox_debian_cloudimage
           delegate_to: sc721.home.h3po.de
