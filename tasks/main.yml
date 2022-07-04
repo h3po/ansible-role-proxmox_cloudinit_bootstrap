@@ -5,7 +5,11 @@
   register: nextid
 
 - name: clone the template
-  ansible.builtin.command: qm clone {{ debian_template_vmid }} {{ nextid.stdout }} -full -storage {{ proxmox_vm_storage }} -name {{ inventory_hostname }} {{ '-pool %s' % proxmox_vm_pool if proxmox_vm_pool is defined}}
+  ansible.builtin.command: >-
+    qm clone {{ debian_template_vmid }} {{ nextid.stdout }}
+    -full -storage {{ proxmox_vm_storage }}
+    -name {{ inventory_hostname }}
+    {{ '-pool %s' % proxmox_vm_pool if proxmox_vm_pool is defined}}
   changed_when: true
   register: qmclone
 
@@ -68,7 +72,7 @@
 
 - name: resize the disk
   ansible.builtin.command: >-
-    qm resize {{ nextid.stdout }} scsi0 {{ proxmox_disk_spec }}
+    qm resize {{ nextid.stdout }} virtio0 {{ proxmox_disk_spec }}
   changed_when: true
   when: proxmox_disk_spec is defined
 
