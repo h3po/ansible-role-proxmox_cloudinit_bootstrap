@@ -6,7 +6,7 @@
 
 - name: clone the template
   ansible.builtin.command: >-
-    qm clone {{ debian_template_vmid }} {{ nextid.stdout }}
+    qm clone {{ proxmox_cloudimage_template_vmid }} {{ nextid.stdout }}
     -full -storage {{ proxmox_vm_storage }}
     -name {{ inventory_hostname }}
     {{ '-pool %s' % proxmox_vm_pool if proxmox_vm_pool is defined}}
@@ -95,14 +95,14 @@
     ).get('ip-address', "") != ""
 
 - name: grow the root partition
-  ansible.builtin.command: qm guest exec {{ nextid.stdout }} growpart /dev/sda 1
+  ansible.builtin.command: qm guest exec {{ nextid.stdout }} growpart /dev/vda 1
   register: qmguestexec
   failed_when: (qmguestexec.stdout | from_json).exitcode != 0 and "NOCHANGE" not in (qmguestexec.stdout | from_json)['out-data']
   changed_when: "'NOCHANGE' not in (qmguestexec.stdout | from_json)['out-data']"
   when: proxmox_disk_spec is defined
 
 - name: grow the root filesystem
-  ansible.builtin.command: qm guest exec {{ nextid.stdout }} resize2fs /dev/sda1
+  ansible.builtin.command: qm guest exec {{ nextid.stdout }} resize2fs /dev/vda1
   register: qmguestexec
   failed_when: (qmguestexec.stdout | from_json).exitcode != 0
   changed_when: "'Nothing to do' not in ((qmguestexec.stdout | from_json).get('err-data', ''))"
@@ -114,7 +114,7 @@
       {{
         (
           (
-            qmguestcmd.stdout | from_json | selectattr('name', 'equalto', 'ens18') | first
+            (qmguestcmd.stdout or "[]") | from_json | selectattr('name', 'equalto', 'ens18') | first
           ).get('ip-addresses') | selectattr('ip-address-type', 'equalto', 'ipv4') | first
         ).get('ip-address')
       }}

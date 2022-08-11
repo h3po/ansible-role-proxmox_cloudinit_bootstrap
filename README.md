@@ -15,7 +15,7 @@ Required variables
 | proxmox_vm_storage | local | the storage that the VM is cloned onto
 | proxmox_bootstrap_user | bootstrap | the name of the user that is added to the VM
 | proxmox_bootstrap_sshkey | random | the ssh key of the bootstrap user. if this is "random", a new key will be created for the first connection
-| debian_template_vmid | | the id of the template to be cloned, usually set by the proxmox_debian_cloudimage role
+| proxmox_cloudimage_template_vmid | | the id of the template to be cloned, usually set by the proxmox_debian_cloudimage role
 
 Optional variables
 | variable | default value | description/alternatives
@@ -45,11 +45,12 @@ Here's an example including the [h3po.proxmox_debian_cloudimage](https://github.
   gather_facts: false
   vars:
     proxmox_template_pool: template
-    debian_cloudimage_repo_subdir: bullseye
-    debian_cloudimage_keep: true
-    debian_cloudimage_qemuagent: true
+    proxmox_cloudimage_repo_subdir: bullseye
+    proxmox_cloudimage_keep: true
+    proxmox_cloudimage_qemuagent: true
     proxmox_bootstrap_user: test
     proxmox_bootstrap_sshkey: ssh-ed25519 AAAAxyzkkMN test
+    proxmox_node: pve
   tasks:
 
     - block:
@@ -60,19 +61,19 @@ Here's an example including the [h3po.proxmox_debian_cloudimage](https://github.
           package:
             name: libguestfs-tools
             state: present
-          delegate_to: sc721.home.h3po.de
+          delegate_to: "{{ proxmox_node }}"
           become: true
 
         - name: create the debian template
           import_role:
             name: h3po.proxmox_debian_cloudimage
-          delegate_to: sc721.home.h3po.de
+          delegate_to: "{{ proxmox_node }}"
           become: true
 
         - name: bootstrap the vm
           import_role:
             name: h3po.proxmox_cloudinit_bootstrap
-          delegate_to: sc721.home.h3po.de
+          delegate_to: "{{ proxmox_node }}"
           become: true
       
       # this is a variable defined by the proxmox inventory plugin if the vm exists
