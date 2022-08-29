@@ -9,7 +9,8 @@
     qm clone {{ proxmox_cloudimage_template_vmid }} {{ nextid.stdout }}
     -full -storage {{ proxmox_vm_storage }}
     -name {{ inventory_hostname }}
-    {{ '-pool %s' % proxmox_vm_pool if proxmox_vm_pool is defined}}
+    {{ '-pool %s' % proxmox_vm_pool if proxmox_vm_pool is defined }}
+    {{ '-target %s' % proxmox_vm_node if proxmox_vm_node is defined }}
   changed_when: true
   register: qmclone
 
@@ -87,10 +88,11 @@
   register: qmguestcmd
   failed_when: false
   delay: 1
+  retries: 30
   until: >-
     (
       (
-        (qmguestcmd.stdout or "[]") | from_json | selectattr('name', 'equalto', 'ens18') | first | default({})
+        (qmguestcmd.stdout or "[]") | from_json | rejectattr('name', 'equalto', 'lo') | first | default({})
       ).get('ip-addresses', []) | selectattr('ip-address-type', 'equalto', 'ipv4') | first | default({})
     ).get('ip-address', "") != ""
 
@@ -100,13 +102,14 @@
   failed_when: (qmguestexec.stdout | from_json).exitcode != 0 and "NOCHANGE" not in (qmguestexec.stdout | from_json)['out-data']
   changed_when: "'NOCHANGE' not in (qmguestexec.stdout | from_json)['out-data']"
   when: proxmox_disk_spec is defined
+  ignore_errors: true
 
 - name: grow the root filesystem
   ansible.builtin.command: qm guest exec {{ nextid.stdout }} resize2fs /dev/vda1
   register: qmguestexec
   failed_when: (qmguestexec.stdout | from_json).exitcode != 0
   changed_when: "'Nothing to do' not in ((qmguestexec.stdout | from_json).get('err-data', ''))"
-  when: proxmox_disk_spec is defined
+  when: proxmox_disk_spec is defined and not qmguestexec.failed
 
 - name: override ansible_host with fresh ip address
   ansible.builtin.set_fact:
@@ -114,7 +117,7 @@
       {{
         (
           (
-            (qmguestcmd.stdout or "[]") | from_json | selectattr('name', 'equalto', 'ens18') | first
+            (qmguestcmd.stdout or "[]") | from_json | rejectattr('name', 'equalto', 'lo') | first
           ).get('ip-addresses') | selectattr('ip-address-type', 'equalto', 'ipv4') | first
         ).get('ip-address')
       }}

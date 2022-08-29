@@ -21,6 +21,7 @@ Optional variables
 | variable | default value | description/alternatives
 | --- | --- | --- |
 | proxmox_vm_pool | | the pool that the VM is added to
+| proxmox_vm_node | | the node that the VM is cloned to. Only works when proxmox_vm_storage is a shared storage
 | proxmox_cores_spec | | the number of cores
 | proxmox_cpuunits_spec | | the cpu shares
 | proxmox_memory_spec | | the memory size in MB
@@ -50,7 +51,7 @@ Here's an example including the [h3po.proxmox_debian_cloudimage](https://github.
     proxmox_cloudimage_qemuagent: true
     proxmox_bootstrap_user: test
     proxmox_bootstrap_sshkey: ssh-ed25519 AAAAxyzkkMN test
-    proxmox_node: pve
+    proxmox_cloudimage_template_node: pve1  # the node that the template is on
   tasks:
 
     - block:
@@ -61,19 +62,19 @@ Here's an example including the [h3po.proxmox_debian_cloudimage](https://github.
           package:
             name: libguestfs-tools
             state: present
-          delegate_to: "{{ proxmox_node }}"
+          delegate_to: "{{ proxmox_cloudimage_template_node }}"
           become: true
 
         - name: create the debian template
           import_role:
             name: h3po.proxmox_debian_cloudimage
-          delegate_to: "{{ proxmox_node }}"
+          delegate_to: "{{ proxmox_cloudimage_template_node }}"
           become: true
 
         - name: bootstrap the vm
           import_role:
             name: h3po.proxmox_cloudinit_bootstrap
-          delegate_to: "{{ proxmox_node }}"
+          delegate_to: "{{ proxmox_cloudimage_template_node }}"
           become: true
       
       # this is a variable defined by the proxmox inventory plugin if the vm exists
