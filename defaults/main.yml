@@ -1,14 +1,18 @@
 ---
-proxmox_vm_storage: local           # the storage to clone the template onto
+proxmox_vm_storage: local                      # the storage to clone the template onto
 proxmox_bootstrap_user: bootstrap
-proxmox_bootstrap_sshkey: random    # set to "random" to generate a temporary ssh key for the bootstrap user
-# proxmox_vm_pool: vms              # optional
+proxmox_bootstrap_sshkey: random               # set to "random" to generate a temporary ssh key for the bootstrap user
 
-# proxmox_cores_spec: 2             # optional
-# proxmox_cpuunits_spec: 2048       # optional
-# proxmox_memory_spec: 4096         # optional
-# proxmox_balloon_spec: 1024        # optional
-# proxmox_memory_shares_spec: 4096  # optional
-# proxmox_bridge_device_spec: vmbr0 # optional
-# proxmox_bridge_vlan_spec: 1       # optional
-# proxmox_disk_spec: 10G            # optional
+# proxmox_vm_pool: vms                         # optional
+# proxmox_cores_spec: 2                        # optional
+# proxmox_cpuunits_spec: 2048                  # optional
+# proxmox_memory_spec: 4096                    # optional
+# proxmox_balloon_spec: 1024                   # optional
+# proxmox_memory_shares_spec: 4096             # optional
+# proxmox_bridge_device_spec: vmbr0            # optional
+# proxmox_bridge_device_ipaddr: 10.10.10.10/24 # optional
+# proxmox_bridge_device_gw: 10.10.10.1         # optional
+# proxmox_bridge_vlan_spec: 1                  # optional
+# proxmox_disk_spec: 10G                       # optional
+# proxmox_nameserver: 10.10.10.2               # optional
+# proxmox_searchdomain: example.net            # optional
