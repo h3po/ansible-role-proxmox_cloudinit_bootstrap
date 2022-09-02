@@ -60,6 +60,9 @@
     {{ '-balloon %s' % proxmox_balloon_spec if proxmox_balloon_spec is defined }}
     {{ '-shares %s' % proxmox_memory_shares_spec if proxmox_memory_shares_spec is defined }}
     {{ '-net0 virtio,bridge=%s' % proxmox_bridge_device_spec if proxmox_bridge_device_spec is defined }}{{ ',tag=%s' % proxmox_bridge_vlan_spec if proxmox_bridge_vlan_spec is defined }}
+    {{ '-ipconfig0 ip=%s' % proxmox_bridge_device_ipaddr if proxmox_bridge_device_ipaddr is defined and proxmox_bridge_device_spec is defined }}{{ ',gw=%s' % proxmox_bridge_device_gw if proxmox_bridge_device_gw is defined and proxmox_bridge_device_ipaddr is defined and proxmox_bridge_device_spec is defined }}
+    {{ '-nameserver %s' % proxmox_nameserver if proxmox_nameserver is defined }}
+    {{ '-searchdomain %s' % proxmox_searchdomain if proxmox_searchdomain is defined }}
     -ciuser {{ proxmox_bootstrap_user }}
     -sshkey {{ remotetempdir.path }}/{{ inventory_hostname_short }}_id_rsa.pub
   changed_when: true

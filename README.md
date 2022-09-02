@@ -28,8 +28,12 @@ Optional variables
 | proxmox_balloon_spec | | the minimum memory size in MB with ballooning
 | proxmox_memory_shares_spec | | the memory shares for ballooning
 | proxmox_bridge_device_spec | | the bridge for the net0 interface
+| proxmox_bridge_device_ipaddr | | the ip address for the net0 interface
+| proxmox_bridge_device_gw | | the default gateway for the net0 interface
 | proxmox_bridge_vlan_spec | | the vlan tag for the net0 interface
 | proxmox_disk_spec | | the disk size in proxmox notation, e.g. '10G'. The role will grow the root partition and filesystem to fill the enlarged disk
+| proxmox_nameserver | | DNS server IP address for the VM.
+| proxmox_searchdomain | | DNS search domain for the VM.
 
 If the optional variables are not defined, then no change is made to the VM and it will keep the inherited settings of the template.
 
