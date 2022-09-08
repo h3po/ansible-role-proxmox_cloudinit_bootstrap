@@ -20,6 +20,7 @@
   delegate_to: localhost
   register: localtempdir
   become: false
+  notify: cleanup local temporary directory
   when: proxmox_bootstrap_sshkey == "random"
 
 - name: create temporary directory on the proxmox host for the ssh key
@@ -124,6 +125,7 @@
           ).get('ip-addresses') | selectattr('ip-address-type', 'equalto', 'ipv4') | first
         ).get('ip-address')
       }}
+    proxmox_cloudimage_guestfs_needs_growing: "{{ qmguestexec.failed | default(False) }}"
 
 - name: override ansible connection variables for bootstrap ssh key
   ansible.builtin.set_fact:
