@@ -133,3 +133,11 @@
     ansible_ssh_extra_args: -o StrictHostKeyChecking=no -o UpdateHostKeys=yes -o AddKeysToAgent=no
     ansible_ssh_private_key_file: "{{ localtempdir.path }}/{{ inventory_hostname_short }}_id_rsa"
   when: proxmox_bootstrap_sshkey == "random"
+
+- name: wait 60s for ssh service to come up
+  ansible.builtin.wait_for:
+    port: 22
+    host: '{{ ansible_host }}'
+    sleep: 1
+    timeout: 60
+  connection: local
