@@ -126,12 +126,13 @@
         ).get('ip-address')
       }}
     proxmox_cloudimage_guestfs_needs_growing: "{{ qmguestexec.failed | default(False) }}"
+    ansible_ssh_extra_args: "{{ ansible_ssh_extra_args | default('') }} -o StrictHostKeyChecking=no -o UpdateHostKeys=yes"
 
 - name: override ansible connection variables for bootstrap ssh key
   ansible.builtin.set_fact:
     ansible_user: "{{ proxmox_bootstrap_user }}"
-    ansible_ssh_extra_args: -o StrictHostKeyChecking=no -o UpdateHostKeys=yes -o AddKeysToAgent=no
     ansible_ssh_private_key_file: "{{ localtempdir.path }}/{{ inventory_hostname_short }}_id_rsa"
+    ansible_ssh_extra_args: "{{ ansible_ssh_extra_args }} -o AddKeysToAgent=no"
   when: proxmox_bootstrap_sshkey == "random"
 
 - name: wait 60s for ssh service to come up
