@@ -102,18 +102,18 @@
 
 - name: grow the root partition
   ansible.builtin.command: qm guest exec {{ nextid.stdout }} growpart /dev/vda 1
-  register: qmguestexec
-  failed_when: (qmguestexec.stdout | from_json).exitcode != 0 and "NOCHANGE" not in (qmguestexec.stdout | from_json)['out-data']
-  changed_when: "'NOCHANGE' not in (qmguestexec.stdout | from_json)['out-data']"
+  register: grow_root_partition
+  failed_when: (grow_root_partition.stdout | from_json).exitcode != 0 and "NOCHANGE" not in (grow_root_partition.stdout | from_json)['out-data']
+  changed_when: "'NOCHANGE' not in (grow_root_partition.stdout | from_json)['out-data']"
   when: proxmox_disk_spec is defined
   ignore_errors: true
 
 - name: grow the root filesystem
   ansible.builtin.command: qm guest exec {{ nextid.stdout }} resize2fs /dev/vda1
-  register: qmguestexec
-  failed_when: (qmguestexec.stdout | from_json).exitcode != 0
-  changed_when: "'Nothing to do' not in ((qmguestexec.stdout | from_json).get('err-data', ''))"
-  when: proxmox_disk_spec is defined and not qmguestexec.failed
+  register: grow_root_fs
+  failed_when: (grow_root_fs.stdout | from_json).exitcode != 0
+  changed_when: "'Nothing to do' not in ((grow_root_fs.stdout | from_json).get('err-data', ''))"
+  when: proxmox_disk_spec is defined and not grow_root_partition.failed
 
 - name: override ansible_host with fresh ip address
   ansible.builtin.set_fact:
@@ -125,7 +125,7 @@
           ).get('ip-addresses') | selectattr('ip-address-type', 'equalto', 'ipv4') | first
         ).get('ip-address')
       }}
-    proxmox_cloudimage_guestfs_needs_growing: "{{ qmguestexec.failed | default(False) }}"
+    proxmox_cloudimage_guestfs_needs_growing: "{{ grow_root_partition.failed | default(False) }}"
     ansible_ssh_extra_args: "{{ ansible_ssh_extra_args | default('') }} -o StrictHostKeyChecking=no -o UpdateHostKeys=yes"
 
 - name: override ansible connection variables for bootstrap ssh key
