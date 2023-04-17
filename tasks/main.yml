@@ -20,7 +20,7 @@
   delegate_to: localhost
   register: localtempdir
   become: false
-  notify: cleanup local temporary directory
+  notify: cleanup temporary directory
   when: proxmox_bootstrap_sshkey == "random"
 
 - name: create temporary directory on the proxmox host for the ssh key
