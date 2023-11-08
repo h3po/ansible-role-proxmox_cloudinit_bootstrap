@@ -144,6 +144,38 @@
   changed_when: "'Nothing to do' not in ((grow_root_fs.stdout | from_json).get('err-data', ''))"
   when: proxmox_disk_spec is defined and not grow_root_partition.failed
 
+- name: delete machine-id
+  ansible.builtin.command: qm guest exec {{ proxmox_new_vmid }} rm /etc/machine-id
+  register: delete_machine_id
+  failed_when: (delete_machine_id.stdout | from_json).exitcode != 0
+  changed_when: true
+
+- name: renew machine-id
+  ansible.builtin.command: qm guest exec {{ proxmox_new_vmid }} -- dbus-uuidgen --ensure=/etc/machine-id
+  register: renew_machine_id
+  failed_when: (renew_machine_id.stdout | from_json).exitcode != 0
+  changed_when: true
+
+- name: reboot vm
+  ansible.builtin.command: qm reboot {{ proxmox_new_vmid }}
+  register: reboot_vm
+  failed_when: reboot_vm.rc != 0
+  changed_when: true
+
+- name: wait for qemu-guest-agent to return an ip address
+  ansible.builtin.command: qm guest cmd {{ proxmox_new_vmid }} network-get-interfaces
+  changed_when: false
+  register: qmguestcmd
+  failed_when: false
+  delay: 1
+  retries: 30
+  until: >-
+    (
+      (
+        (qmguestcmd.stdout or "[]") | from_json | rejectattr('name', 'equalto', 'lo') | first | default({})
+      ).get('ip-addresses', []) | selectattr('ip-address-type', 'equalto', 'ipv4') | first | default({})
+    ).get('ip-address', "") != ""
+
 - name: override ansible_host with fresh ip address
   ansible.builtin.set_fact:
     ansible_host: >-
