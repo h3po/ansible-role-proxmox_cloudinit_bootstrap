@@ -63,6 +63,7 @@
   ansible.builtin.command: >-
     qm set {{ proxmox_new_vmid }}
     {{ '-cores %s' % proxmox_cores_spec if proxmox_cores_spec is defined }}
+    {{ '-cpu cputype=%s' % proxmox_cputype_spec if proxmox_cputype_spec is defined }}
     {{ '-cpuunits %s' % proxmox_cpuunits_spec if proxmox_cpuunits_spec is defined }}
     {{ '-memory %s' % proxmox_memory_spec if proxmox_memory_spec is defined }}
     {{ '-balloon %s' % proxmox_balloon_spec if proxmox_balloon_spec is defined }}

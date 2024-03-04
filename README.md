@@ -23,6 +23,7 @@ Optional variables
 | proxmox_vm_pool | | the pool that the VM is added to
 | proxmox_vm_node | | the node that the VM is cloned to. Only works when proxmox_vm_storage is a shared storage
 | proxmox_cores_spec | | the number of cores
+| proxmox_cputype_spec | | the KVM cpu model
 | proxmox_cpuunits_spec | | the cpu shares
 | proxmox_memory_spec | | the memory size in MB
 | proxmox_balloon_spec | | the minimum memory size in MB with ballooning

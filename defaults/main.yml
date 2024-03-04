@@ -5,6 +5,7 @@ proxmox_bootstrap_sshkey: random               # set to "random" to generate a t
 
 # proxmox_vm_pool: vms                         # optional
 # proxmox_cores_spec: 2                        # optional
+# proxmoc_cputype_spec: x86-64-v2              # optional
 # proxmox_cpuunits_spec: 2048                  # optional
 # proxmox_memory_spec: 4096                    # optional
 # proxmox_balloon_spec: 1024                   # optional
