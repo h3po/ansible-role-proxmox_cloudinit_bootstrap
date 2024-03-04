@@ -1,12 +1,19 @@
 ---
-- name: get the next free vmid
-  ansible.builtin.command: pvesh get /cluster/nextid
-  changed_when: false
-  register: nextid
+- name: get new vmid
+  when: proxmox_new_vmid is not defined
+  block:
+    - name: get the next free vmid
+      ansible.builtin.command: pvesh get /cluster/nextid
+      changed_when: false
+      register: nextid
+    
+    - name: set new vm id
+      ansible.builtin.set_fact:
+        proxmox_new_vmid: "{{ nextid.stdout }}"
 
 - name: clone the template
   ansible.builtin.command: >-
-    qm clone {{ proxmox_cloudimage_template_vmid }} {{ nextid.stdout }}
+    qm clone {{ proxmox_cloudimage_template_vmid }} {{ proxmox_new_vmid }}
     -full -storage {{ proxmox_vm_storage }}
     -name {{ inventory_hostname }}
     {{ '-pool %s' % proxmox_vm_pool if proxmox_vm_pool is defined }}
@@ -54,7 +61,7 @@
 
 - name: configure the vm
   ansible.builtin.command: >-
-    qm set {{ nextid.stdout }}
+    qm set {{ proxmox_new_vmid }}
     {{ '-cores %s' % proxmox_cores_spec if proxmox_cores_spec is defined }}
     {{ '-cpuunits %s' % proxmox_cpuunits_spec if proxmox_cpuunits_spec is defined }}
     {{ '-memory %s' % proxmox_memory_spec if proxmox_memory_spec is defined }}
@@ -75,19 +82,41 @@
     state: absent
   when: remotetempdir is defined
 
+- name: get vm config # inventory_hostname_short reflects the delegated host
+  ansible.builtin.command:
+    cmd: pvesh get /nodes/{{ proxmox_vm_node if proxmox_vm_node is defined else inventory_hostname_short }}/qemu/{{ proxmox_new_vmid }}/config --output-format json
+  register: vm_config
+  changed_when: true
+
+- name: convert vm config to json
+  ansible.builtin.set_fact:
+    vm_config: "{{ vm_config.stdout | from_json }}"
+
+- name: set primary_disk
+  ansible.builtin.set_fact:
+    primary_disk: >-
+      {{ 'virtio0' if vm_config.virtio0 is defined else
+      'scsi0' if vmconfig.scsi0 is defined else
+      'ide0' if vmconfig.ide0 is defined else 'undefined' }}
+- name: fail if proxmox_disk_spec is defined but no primary_disk is found
+  ansible.builtin.fail:
+    msg: proxmox_disk_spec is defined but no primary_disk is found
+  run_once: true
+  when: proxmox_disk_spec is defined and primary_disk == 'undefined'
+
 - name: resize the disk
   ansible.builtin.command: >-
-    qm resize {{ nextid.stdout }} virtio0 {{ proxmox_disk_spec }}
+    qm resize {{ proxmox_new_vmid }} {{ primary_disk }} {{ proxmox_disk_spec }}
   changed_when: true
   when: proxmox_disk_spec is defined
 
 - name: start the vm
-  ansible.builtin.command: qm start {{ nextid.stdout }}
+  ansible.builtin.command: qm start {{ proxmox_new_vmid }}
   changed_when: true
   register: qmstart
 
 - name: wait for qemu-guest-agent to return an ip address
-  ansible.builtin.command: qm guest cmd {{ nextid.stdout }} network-get-interfaces
+  ansible.builtin.command: qm guest cmd {{ proxmox_new_vmid }} network-get-interfaces
   changed_when: false
   register: qmguestcmd
   failed_when: false
@@ -101,7 +130,7 @@
     ).get('ip-address', "") != ""
 
 - name: grow the root partition
-  ansible.builtin.command: qm guest exec {{ nextid.stdout }} growpart /dev/vda 1
+  ansible.builtin.command: qm guest exec {{ proxmox_new_vmid }} growpart /dev/vda 1
   register: grow_root_partition
   failed_when: (grow_root_partition.stdout | from_json).exitcode != 0 and "NOCHANGE" not in (grow_root_partition.stdout | from_json)['out-data']
   changed_when: "'NOCHANGE' not in (grow_root_partition.stdout | from_json)['out-data']"
@@ -109,7 +138,7 @@
   ignore_errors: true
 
 - name: grow the root filesystem
-  ansible.builtin.command: qm guest exec {{ nextid.stdout }} resize2fs /dev/vda1
+  ansible.builtin.command: qm guest exec {{ proxmox_new_vmid }} resize2fs /dev/vda1
   register: grow_root_fs
   failed_when: (grow_root_fs.stdout | from_json).exitcode != 0
   changed_when: "'Nothing to do' not in ((grow_root_fs.stdout | from_json).get('err-data', ''))"
