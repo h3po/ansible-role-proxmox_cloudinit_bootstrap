@@ -97,8 +97,8 @@
   ansible.builtin.set_fact:
     primary_disk: >-
       {{ 'virtio0' if vm_config.virtio0 is defined else
-      'scsi0' if vmconfig.scsi0 is defined else
-      'ide0' if vmconfig.ide0 is defined else 'undefined' }}
+      'scsi0' if vm_config.scsi0 is defined else
+      'ide0' if vm_config.ide0 is defined else 'undefined' }}
 - name: fail if proxmox_disk_spec is defined but no primary_disk is found
   ansible.builtin.fail:
     msg: proxmox_disk_spec is defined but no primary_disk is found
